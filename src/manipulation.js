@@ -5,6 +5,7 @@ var rinlinejQuery = / jQuery\d+="(?:\d+|null)"/g,
 	rtagName = /<([\w:]+)/,
 	rtbody = /<tbody/i,
 	rhtml = /<|&\w+;/,
+	rchecked = /checked\s*([^=]|=\s*("checked"|'checked'))/i,  // checked="checked" or checked (html5)
 	fcloseTag = function( all, front, tag ) {
 		return rselfClosing.test( tag ) ?
 			all :
@@ -324,7 +325,8 @@ function cloneCopyEvent(orig, ret) {
 function buildFragment( args, nodes, scripts ) {
 	var fragment, cacheable, cached, cacheresults, doc;
 
-	if ( args.length === 1 && typeof args[0] === "string" && args[0].length < 512 && args[0].indexOf("<option") < 0 ) {
+	// webkit does not clone 'checked' attribute of radio inputs on cloneNode, so don't cache if string has a checked
+	if ( args.length === 1 && typeof args[0] === "string" && args[0].length < 512 && args[0].indexOf("<option") < 0 && !rchecked.test( args[0] ) ) {
 		cacheable = true;
 		cacheresults = jQuery.fragments[ args[0] ];
 		if ( cacheresults ) {

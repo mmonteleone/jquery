@@ -197,7 +197,7 @@ test("unwrap()", function() {
 });
 
 var testAppend = function(valueObj) {
-	expect(22);
+	expect(25);
 	var defaultText = 'Try them out:'
 	var result = jQuery('#first').append(valueObj('<b>buga</b>'));
 	equals( result.text(), defaultText + 'buga', 'Check if text appending works' );
@@ -230,6 +230,18 @@ var testAppend = function(valueObj) {
 	ok( jQuery("#sap").append(valueObj( [] )), "Check for appending an empty array." );
 	ok( jQuery("#sap").append(valueObj( "" )), "Check for appending an empty string." );
 	ok( jQuery("#sap").append(valueObj( document.getElementsByTagName("foo") )), "Check for appending an empty nodelist." );
+	
+	reset();
+	jQuery('form:last').append('<input type="radio" id="checkedRadio" checked="checked" />');
+	ok( jQuery('#checkedRadio').is(':checked'), "Append checked radio");	
+
+	reset();
+	jQuery('form:last').append('<input checked =  "checked" id="checkedRadio" type= "radio" />');
+	ok( jQuery('#checkedRadio').is(':checked'), "Append alternately formated checked radio");	
+
+	reset();
+	jQuery('form:last').append('<input checked id="checkedRadio" type= "radio" />');
+	ok( jQuery('#checkedRadio').is(':checked'), "Append HTML5-formated checked radio");	
 
 	reset();
 	jQuery("#sap").append(valueObj( document.getElementById('form') ));
