@@ -347,11 +347,7 @@ function buildFragment( args, nodes, scripts ) {
 	var fragment, cacheable, cacheresults, doc;
 
 	// webkit does not clone 'checked' attribute of radio inputs on cloneNode, so don't cache if string has a checked
-<<<<<<< HEAD
-	if ( args.length === 1 && typeof args[0] === "string" && args[0].length < 512 && args[0].indexOf("<option") < 0 && !rchecked.test( args[0] ) ) {
-=======
 	if ( args.length === 1 && typeof args[0] === "string" && args[0].length < 512 && args[0].indexOf("<option") < 0 && (jQuery.support.checkClone || !rchecked.test( args[0] )) ) {
->>>>>>> upstream/master
 		cacheable = true;
 		cacheresults = jQuery.fragments[ args[0] ];
 		if ( cacheresults ) {
