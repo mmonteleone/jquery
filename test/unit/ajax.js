@@ -70,6 +70,30 @@ test("jQuery.ajax() - error callbacks", function() {
 	});
 });
 
+test(".load()) - 404 error callbacks", function() {
+	expect( 6 );
+	stop();
+
+	jQuery('#foo').ajaxStart(function(){
+		ok( true, "ajaxStart" );
+	}).ajaxStop(function(){
+		ok( true, "ajaxStop" );
+		start();
+	}).ajaxSend(function(){
+		ok( true, "ajaxSend" );
+	}).ajaxComplete(function(){
+		ok( true, "ajaxComplete" );
+	}).ajaxError(function(){
+		ok( true, "ajaxError" );
+	}).ajaxSuccess(function(){
+		ok( false, "ajaxSuccess" );
+	});
+
+	jQuery("<div/>").load("data/404.html", function(){
+		ok(true, "complete");
+	});
+});
+
 test("jQuery.ajax() - abort", function() {
 	expect( 6 );
 	stop();
@@ -95,7 +119,7 @@ test("jQuery.ajax() - abort", function() {
 });
 
 test("Ajax events with context", function() {
-	expect(6);
+	expect(14);
 	
 	stop();
 	var context = document.createElement("div");
@@ -104,8 +128,16 @@ test("Ajax events with context", function() {
 		equals( this, context, e.type );
 	}
 
-	function callback(){
-		equals( this, context, "context is preserved on callback" );
+	function callback(msg){
+		return function(){
+			equals( this, context, "context is preserved on callback " + msg );
+		};
+	}
+
+	function nocallback(msg){
+		return function(){
+			equals( typeof this.url, "string", "context is settings on callback " + msg );
+		};
 	}
 	
 	jQuery('#foo').add(context)
@@ -116,20 +148,57 @@ test("Ajax events with context", function() {
 
 	jQuery.ajax({
 		url: url("data/name.html"),
-		beforeSend: callback,
-		success: callback,
-		error: callback,
+		beforeSend: callback("beforeSend"),
+		success: callback("success"),
+		error: callback("error"),
 		complete:function(){
-			callback.call(this);
-			setTimeout(proceed, 300);
+			callback("complete").call(this);
+
+			jQuery.ajax({
+				url: url("data/404.html"),
+				context: context,
+				beforeSend: callback("beforeSend"),
+				error: callback("error"),
+				complete: function(){
+					callback("complete").call(this);
+
+					jQuery('#foo').add(context).unbind();
+
+					jQuery.ajax({
+						url: url("data/404.html"),
+						beforeSend: nocallback("beforeSend"),
+						error: nocallback("error"),
+						complete: function(){
+							nocallback("complete").call(this);
+							start();
+						}
+					});
+				}
+			});
 		},
 		context:context
 	});
-	
-	function proceed(){
-		jQuery('#foo').add(context).unbind();
-		start();
-	}
+});
+
+test("jQuery.ajax context modification", function() {
+	expect(1);
+
+	stop();
+
+	var obj = {}
+
+	jQuery.ajax({
+		url: url("data/name.html"),
+		context: obj,
+		beforeSend: function(){
+			this.test = "foo";
+		},
+		complete: function() {
+			start();
+		}
+	});
+
+	equals( obj.test, "foo", "Make sure the original object is maintained." );
 });
 
 test("jQuery.ajax() - disabled globals", function() {
@@ -823,7 +892,7 @@ test("jQuery.ajax() - script, Remote with scheme-less URL", function() {
 });
 
 test("jQuery.ajax() - malformed JSON", function() {
-	expect(1);
+	expect(2);
 
 	stop();
 
@@ -834,8 +903,9 @@ test("jQuery.ajax() - malformed JSON", function() {
 			ok( false, "Success." );
 			start();
 		},
-		error: function(xhr, msg) {
+		error: function(xhr, msg, detailedMsg) {
 			equals( "parsererror", msg, "A parse error occurred." );
+			ok( /^Invalid JSON/.test(detailedMsg), "Detailed parsererror message provided" );
 	  		start();
 		}
 	});
@@ -928,6 +998,19 @@ test("jQuery.getJSON(String, Function) - JSON object with absolute url to local 
 	  equals( json.data.lang, 'en', 'Check JSON: lang' );
 	  equals( json.data.length, 25, 'Check JSON: length' );
 	  start();
+	});
+});
+
+test("jQuery.post - data", function() {
+	expect(2);
+	stop();
+
+	jQuery.post(url("data/name.php"), {xml: "5-2", length: 3}, function(xml){
+		jQuery('math', xml).each(function() {
+			equals( jQuery('calculation', this).text(), '5-2', 'Check for XML' );
+			equals( jQuery('result', this).text(), '3', 'Check for XML' );
+		});
+		start();
 	});
 });
 
