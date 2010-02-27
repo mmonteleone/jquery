@@ -69,6 +69,15 @@ jQuery.fn = jQuery.prototype = {
 			this.length = 1;
 			return this;
 		}
+		
+		// The body element only exists once, optimize finding it
+		if ( selector === "body" && !context ) {
+			this.context = document;
+			this[0] = document.body;
+			this.selector = "body";
+			this.length = 1;
+			return this;
+		}
 
 		// Handle HTML strings
 		if ( typeof selector === "string" ) {
@@ -99,7 +108,9 @@ jQuery.fn = jQuery.prototype = {
 						ret = buildFragment( [ match[1] ], [ doc ] );
 						selector = (ret.cacheable ? ret.fragment.cloneNode(true) : ret.fragment).childNodes;
 					}
-
+					
+					return jQuery.merge( this, selector );
+					
 				// HANDLE: $("#id")
 				} else {
 					elem = document.getElementById( match[2] );
@@ -126,6 +137,7 @@ jQuery.fn = jQuery.prototype = {
 				this.selector = selector;
 				this.context = document;
 				selector = document.getElementsByTagName( selector );
+				return jQuery.merge( this, selector );
 
 			// HANDLE: $(expr, $(...))
 			} else if ( !context || context.jquery ) {
@@ -148,9 +160,7 @@ jQuery.fn = jQuery.prototype = {
 			this.context = selector.context;
 		}
 
-		return jQuery.isArray( selector ) ?
-			this.setArray( selector ) :
-			jQuery.makeArray( selector, this );
+		return jQuery.makeArray( selector, this );
 	},
 
 	// Start with an empty selector
@@ -187,7 +197,14 @@ jQuery.fn = jQuery.prototype = {
 	// (returning the new matched element set)
 	pushStack: function( elems, name, selector ) {
 		// Build a new jQuery matched element set
-		var ret = jQuery( elems || null );
+		var ret = jQuery();
+
+		if ( jQuery.isArray( elems ) ) {
+			push.apply( ret, elems );
+		
+		} else {
+			jQuery.merge( ret, elems );
+		}
 
 		// Add the old object onto the stack (as a reference)
 		ret.prevObject = this;
@@ -202,18 +219,6 @@ jQuery.fn = jQuery.prototype = {
 
 		// Return the newly-formed element set
 		return ret;
-	},
-
-	// Force the current matched set of elements to become
-	// the specified array of elements (destroying the stack in the process)
-	// You should use pushStack() in order to do this, but maintain the stack
-	setArray: function( elems ) {
-		// Resetting the length to 0, then using the native Array push
-		// is a super-fast way to populate an object with array-like properties
-		this.length = 0;
-		push.apply( this, elems );
-
-		return this;
 	},
 
 	// Execute a callback for every element in the matched set.
@@ -475,6 +480,9 @@ jQuery.extend({
 		if ( typeof data !== "string" || !data ) {
 			return null;
 		}
+
+		// Make sure leading/trailing whitespace is removed (IE can't handle it)
+		data = jQuery.trim( data );
 		
 		// Make sure the incoming data is actual JSON
 		// Logic borrowed from http://json.org/json2.js
@@ -602,6 +610,7 @@ jQuery.extend({
 			for ( var l = second.length; j < l; j++ ) {
 				first[ i++ ] = second[ j ];
 			}
+		
 		} else {
 			while ( second[j] !== undefined ) {
 				first[ i++ ] = second[ j++ ];
@@ -790,7 +799,7 @@ function access( elems, key, value, exec, fn, pass ) {
 	}
 	
 	// Getting an attribute
-	return length ? fn( elems[0], key ) : null;
+	return length ? fn( elems[0], key ) : undefined;
 }
 
 function now() {
